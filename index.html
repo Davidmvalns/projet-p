@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projet P - Planning JV</title>
+    <style>
+        :root {
+            --bg-fond: #121212;
+            --bg-carte: #1e1e1e;
+            --texte-principal: #ffffff;
+            --texte-secondaire: #a0a0a0;
+            --accentuation: #00ffcc;
+            --accent-nintendo: #e60012;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-fond);
+            color: var(--texte-principal);
+            margin: 0;
+            padding: 20px;
+        }
+
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { margin: 0; font-size: 2.5em; text-transform: uppercase; letter-spacing: 2px;}
+        .sous-titre { color: var(--texte-secondaire); font-weight: bold; }
+
+        .filtres {
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap;
+        }
+        
+        button {
+            background-color: var(--bg-carte); color: var(--texte-principal);
+            border: 1px solid #333; padding: 10px 20px; border-radius: 20px;
+            cursor: pointer; transition: all 0.2s; font-weight: bold;
+        }
+
+        button:hover, button.actif {
+            border-color: var(--accentuation); color: var(--accentuation);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+        }
+        
+        /* Couleur spécifique pour le bouton Nintendo quand il est actif */
+        button[data-filtre="Nintendo"]:hover, button[data-filtre="Nintendo"].actif {
+            border-color: var(--accent-nintendo); color: var(--accent-nintendo);
+            box-shadow: 0 0 10px rgba(230, 0, 18, 0.2);
+        }
+
+        .grille-jeux {
+            display: grid; gap: 20px; max-width: 1200px; margin: 0 auto;
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 600px) { .grille-jeux { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 900px) { .grille-jeux { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 1200px) { .grille-jeux { grid-template-columns: repeat(4, 1fr); } }
+
+        .carte-jeu {
+            background: var(--bg-carte); border-radius: 12px; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.2s;
+            display: flex; flex-direction: column;
+            animation: apparition 0.4s ease-out;
+        }
+        
+        @keyframes apparition {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .carte-jeu:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 255, 204, 0.15); }
+
+        .jaquette {
+            width: 100%; height: 350px; background-color: #2a2a2a;
+            background-size: cover; background-position: center;
+        }
+
+        .infos { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
+        .date { color: var(--accentuation); font-weight: bold; font-size: 0.9em; margin-bottom: 8px; }
+        .titre { margin: 0 0 10px 0; font-size: 1.2em; line-height: 1.3; }
+        .plateforme { 
+            font-size: 0.85em; color: var(--texte-secondaire); 
+            margin-top: auto; padding-top: 10px; border-top: 1px solid #333;
+        }
+        .plateforme.nintendo { color: var(--accent-nintendo); }
+        
+        .loading { text-align: center; color: var(--texte-secondaire); font-style: italic; grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Projet P</h1>
+        <div class="sous-titre">Planning des sorties</div>
+    </header>
+
+    <!-- Ajout des attributs data-filtre pour la logique Javascript -->
+    <div class="filtres">
+        <button class="actif" data-filtre="Toutes les sorties">Toutes les sorties</button>
+        <button data-filtre="PlayStation">PlayStation</button>
+        <button data-filtre="Xbox">Xbox</button>
+        <button data-filtre="Nintendo">Nintendo</button>
+        <button data-filtre="PC">PC</button>
+    </div>
+
+    <main id="grille-jeux" class="grille-jeux">
+        <div class="loading">Chargement des données satellites...</div>
+    </main>
+
+    <script>
+        let tousLesJeux = []; // On stocke les jeux ici pour pouvoir les filtrer sans retélécharger le JSON
+
+        async function init() {
+            try {
+                const reponse = await fetch('sorties.json');
+                if (!reponse.ok) throw new Error("Impossible de charger sorties.json");
+                
+                tousLesJeux = await reponse.json();
+                afficherJeux(tousLesJeux);
+                configurerFiltres();
+                
+            } catch (erreur) {
+                console.error(erreur);
+                document.getElementById('grille-jeux').innerHTML = `<div class="loading" style="color: #ff4444;">
+                    Erreur de chargement des données. Assurez-vous d'utiliser un serveur local.
+                </div>`;
+            }
+        }
+
+        function afficherJeux(jeuxData) {
+            const conteneur = document.getElementById('grille-jeux');
+            conteneur.innerHTML = ''; 
+
+            if(jeuxData.length === 0) {
+                conteneur.innerHTML = '<div class="loading">Aucun jeu ne correspond à ce filtre.</div>';
+                return;
+            }
+
+            jeuxData.forEach(jeu => {
+                const article = document.createElement('article');
+                article.className = 'carte-jeu';
+                
+                const styleJaquette = jeu.jaquette ? `background-image: url('${jeu.jaquette}')` : '';
+                
+                // On met une classe spécifique si c'est un jeu Nintendo (pour afficher le texte en rouge Nintendo)
+                const classePlateforme = jeu.plateforme.includes('Nintendo') ? 'plateforme nintendo' : 'plateforme';
+                
+                // On met la date en rouge aussi si c'est Nintendo
+                const styleDate = jeu.plateforme.includes('Nintendo') ? `color: var(--accent-nintendo)` : '';
+
+                article.innerHTML = `
+                    <div class="jaquette" style="${styleJaquette}"></div>
+                    <div class="infos">
+                        <div class="date" style="${styleDate}">${jeu.date}</div>
+                        <h2 class="titre">${jeu.titre}</h2>
+                        <div class="plateforme ${classePlateforme}">${jeu.plateforme}</div>
+                    </div>
+                `;
+                
+                conteneur.appendChild(article);
+            });
+        }
+
+        function configurerFiltres() {
+            const boutons = document.querySelectorAll('.filtres button');
+            
+            boutons.forEach(bouton => {
+                bouton.addEventListener('click', (e) => {
+                    // 1. On enlève la classe "actif" de tous les boutons
+                    boutons.forEach(b => b.classList.remove('actif'));
+                    // 2. On l'ajoute sur le bouton cliqué
+                    e.target.classList.add('actif');
+                    
+                    // 3. On filtre les données
+                    const filtreChoisi = e.target.getAttribute('data-filtre');
+                    
+                    if (filtreChoisi === 'Toutes les sorties') {
+                        afficherJeux(tousLesJeux);
+                    } else {
+                        // On garde uniquement les jeux dont le nom de la plateforme contient le mot-clé (ex: "Nintendo")
+                        const jeuxFiltres = tousLesJeux.filter(jeu => jeu.plateforme.includes(filtreChoisi));
+                        afficherJeux(jeuxFiltres);
+                    }
+                });
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
