@@ -28,11 +28,11 @@ def fetch_upcoming_games(client_id, access_token):
     
     current_timestamp = int(time.time())
     
-    # REQUÊTE SIMPLIFIÉE : On demande à IGDB d'inclure la catégorie, 
-    # mais on enlève le filtre complexe d'ici pour éviter qu'il ne plante.
+    # REQUÊTE OPTIMISÉE : On bloque les DLC directement à la source
+    # pour que notre limite de 500 ne contienne que des vrais jeux !
     query = f"""
     fields game.name, game.cover.image_id, date, platform.name, game.category;
-    where date > {current_timestamp} & platform = (6,130,167,169);
+    where date > {current_timestamp} & platform = (6,130,167,169) & game.category = (0,8,9);
     sort date asc;
     limit 500;
     """
@@ -65,14 +65,10 @@ def format_games_data(raw_data):
         except KeyError:
             continue
 
-        # 2. Récupération de la jaquette sécurisée
+        # 2. Récupération de la jaquette officielle
         cover_url = ""
         if 'cover' in game_info and 'image_id' in game_info['cover']:
             cover_url = f"https://images.igdb.com/igdb/image/upload/t_cover_big/{game_info['cover']['image_id']}.jpg"
-        else:
-            # Encodage sécurisé pour éviter les crashs avec des symboles comme ":"
-            texte_url = urllib.parse.quote(game_info['name'])
-            cover_url = f"https://placehold.co/600x800/1e1e1e/00ffcc?text={texte_url}"
             
         # 3. Simplification des noms de plateformes
         platform_name = "Autre"
