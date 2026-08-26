@@ -36,7 +36,7 @@ def fetch_all_platforms(client_id, access_token):
     ]
     
     for plat in platforms_config:
-        # On cible 'release_dates' pour bloquer la jaquette sur la bonne version
+        # Requête très stricte : Uniquement jeux principaux (0,8,9), avec jaquette (!= null)
         query = f"""
         fields game.name, game.cover.image_id, date, platform.name;
         where date > {current_timestamp} 
@@ -52,7 +52,7 @@ def fetch_all_platforms(client_id, access_token):
             response.raise_for_status()
             data = response.json()
             
-            # On étiquette manuellement la famille de console pour éviter les erreurs
+            # On étiquette manuellement la famille de console
             for item in data:
                 item['master_platform'] = plat['name']
             
@@ -76,8 +76,7 @@ def format_games_data(raw_data):
         game_name = game_data.get('name', 'Inconnu')
         platform_family = item['master_platform']
         
-        # 1. Filtre Anti-Doublons (ex: même jeu qui sort aux USA puis en Europe)
-        # On ne garde que la TOUTE PREMIÈRE date rencontrée pour un jeu sur une console
+        # 1. Filtre Anti-Doublons (ex: si le jeu a 3 dates, on ne garde que la 1ère)
         combo_id = f"{game_name}_{platform_family}"
         if combo_id in seen_combinations:
             continue
@@ -87,7 +86,7 @@ def format_games_data(raw_data):
         if 'cover' in game_data and 'image_id' in game_data['cover']:
             cover_url = f"https://images.igdb.com/igdb/image/upload/t_cover_big/{game_data['cover']['image_id']}.jpg"
         else:
-            continue # S'il n'y a pas d'image finale, on ignore le jeu
+            continue # S'il n'y a toujours pas d'image, on rejette purement le jeu
 
         # 3. Calcul de la date
         try:
@@ -104,7 +103,7 @@ def format_games_data(raw_data):
             "jaquette": cover_url
         })
         
-    # On mélange toutes les consoles et on trie chronologiquement
+    # On mélange toutes les consoles et on trie par date de sortie globale
     formatted_games = sorted(formatted_games, key=lambda x: x['timestamp'])
     return formatted_games
 
