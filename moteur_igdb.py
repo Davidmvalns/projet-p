@@ -17,98 +17,107 @@ def get_twitch_access_token(client_id, client_secret):
     response.raise_for_status()
     return response.json()['access_token']
 
-def fetch_upcoming_games(client_id, access_token):
-    """NOUVELLE MÉTHODE : Interroge la base des JEUX (et non plus des dates)."""
-    # On cible directement les jeux pour éviter les doublons de dates par pays
-    url = "https://api.igdb.com/v4/games"
+def fetch_all_platforms(client_id, access_token):
+    """Fait 4 recherches séparées pour garantir l'équilibre des consoles."""
     headers = {
         'Client-ID': client_id,
         'Authorization': f'Bearer {access_token}'
     }
     
     current_timestamp = int(time.time())
+    all_games = []
     
-    # REQUÊTE BLINDÉE :
-    # category = (0,8,9) -> Uniquement Jeux principaux, Remakes, Remasters
-    # cover != null -> Obligation d'avoir une jaquette
-    # On récupère les 300 prochains vrais jeux !
-    query = f"""
-    fields name, cover.image_id, first_release_date, platforms.name;
-    where first_release_date > {current_timestamp} 
-    & platforms = (6,130,167,169,48,49) 
-    & category = (0,8,9) 
-    & cover != null;
-    sort first_release_date asc;
-    limit 300;
-    """
+    # ID des consoles IGDB : PS (48,167), Xbox (49,169), Nintendo (130), PC (6)
+    platforms_config = [
+        {"name": "PlayStation", "ids": "48,167"},
+        {"name": "Xbox", "ids": "49,169"},
+        {"name": "Nintendo", "ids": "130"},
+        {"name": "PC", "ids": "6"}
+    ]
     
-    response = requests.post(url, headers=headers, data=query)
-    response.raise_for_status()
-    return response.json()
+    for plat in platforms_config:
+        # On cible 'release_dates' pour bloquer la jaquette sur la bonne version
+        query = f"""
+        fields game.name, game.cover.image_id, date, platform.name;
+        where date > {current_timestamp} 
+        & platform = ({plat['ids']}) 
+        & game.category = (0,8,9) 
+        & game.cover != null;
+        sort date asc;
+        limit 150;
+        """
+        
+        try:
+            response = requests.post("https://api.igdb.com/v4/release_dates", headers=headers, data=query)
+            response.raise_for_status()
+            data = response.json()
+            
+            # On étiquette manuellement la famille de console pour éviter les erreurs
+            for item in data:
+                item['master_platform'] = plat['name']
+            
+            all_games.extend(data)
+        except Exception as e:
+            print(f"Erreur sur la plateforme {plat['name']} : {e}")
+            
+    return all_games
 
 def format_games_data(raw_data):
-    """Formate et trie les jeux par plateforme de manière stricte."""
+    """Nettoie les données et élimine les doublons de dates."""
     formatted_games = []
+    seen_combinations = set()
     
-    for game in raw_data:
-        if 'first_release_date' not in game or 'name' not in game:
+    for item in raw_data:
+        # Sécurité : on vérifie que l'API a bien renvoyé toutes les infos
+        if 'game' not in item or 'date' not in item or 'master_platform' not in item:
             continue
             
-        # 1. Formatage de la date de sortie initiale
+        game_data = item['game']
+        game_name = game_data.get('name', 'Inconnu')
+        platform_family = item['master_platform']
+        
+        # 1. Filtre Anti-Doublons (ex: même jeu qui sort aux USA puis en Europe)
+        # On ne garde que la TOUTE PREMIÈRE date rencontrée pour un jeu sur une console
+        combo_id = f"{game_name}_{platform_family}"
+        if combo_id in seen_combinations:
+            continue
+        seen_combinations.add(combo_id)
+
+        # 2. Sécurisation absolue de la jaquette
+        if 'cover' in game_data and 'image_id' in game_data['cover']:
+            cover_url = f"https://images.igdb.com/igdb/image/upload/t_cover_big/{game_data['cover']['image_id']}.jpg"
+        else:
+            continue # S'il n'y a pas d'image finale, on ignore le jeu
+
+        # 3. Calcul de la date
         try:
-            date_obj = datetime.fromtimestamp(game['first_release_date'])
+            date_obj = datetime.fromtimestamp(item['date'])
             formatted_date = date_obj.strftime('%d/%m/%Y')
-        except KeyError:
+        except Exception:
             continue
 
-        # 2. Récupération de la vraie jaquette associée au jeu
-        cover_url = ""
-        if 'cover' in game and 'image_id' in game['cover']:
-            cover_url = f"https://images.igdb.com/igdb/image/upload/t_cover_big/{game['cover']['image_id']}.jpg"
-            
-        # 3. Répartition propre par plateforme
-        is_playstation = False
-        is_xbox = False
-        is_nintendo = False
-        is_pc = False
+        formatted_games.append({
+            "titre": game_name,
+            "date": formatted_date,
+            "timestamp": item['date'],
+            "plateforme": platform_family,
+            "jaquette": cover_url
+        })
         
-        if 'platforms' in game:
-            for p in game['platforms']:
-                p_name = p.get('name', '')
-                if "PlayStation" in p_name: is_playstation = True
-                if "Xbox" in p_name: is_xbox = True
-                if "Nintendo" in p_name or "Switch" in p_name: is_nintendo = True
-                if "PC" in p_name: is_pc = True
-        
-        # On crée une carte pour chaque plateforme sur laquelle le jeu sort
-        platforms_to_add = []
-        if is_playstation: platforms_to_add.append("PlayStation")
-        if is_xbox: platforms_to_add.append("Xbox")
-        if is_nintendo: platforms_to_add.append("Nintendo")
-        if is_pc: platforms_to_add.append("PC")
-            
-        for plat in platforms_to_add:
-            formatted_games.append({
-                "titre": game['name'],
-                "date": formatted_date,
-                "timestamp": game['first_release_date'],
-                "plateforme": plat,
-                "jaquette": cover_url
-            })
-            
+    # On mélange toutes les consoles et on trie chronologiquement
+    formatted_games = sorted(formatted_games, key=lambda x: x['timestamp'])
     return formatted_games
 
 if __name__ == '__main__':
-    print("Démarrage du Projet P - Moteur V3...")
+    print("Démarrage du Projet P - Moteur Ultime (Multi-Requêtes)...")
     try:
         token = get_twitch_access_token(CLIENT_ID, CLIENT_SECRET)
-        raw_data = fetch_upcoming_games(CLIENT_ID, token)
-        
+        raw_data = fetch_all_platforms(CLIENT_ID, token)
         clean_data = format_games_data(raw_data)
-        print(f"✅ SUCCÈS : {len(clean_data)} fiches consoles créées (à partir de {len(raw_data)} vrais jeux uniques) !")
         
         with open('sorties.json', 'w', encoding='utf-8') as f:
             json.dump(clean_data, f, ensure_ascii=False, indent=4)
             
+        print(f"✅ SUCCÈS : {len(clean_data)} jeux parfaitement uniques et ciblés générés !")
     except Exception as e:
-        print(f"❌ Erreur lors de l'exécution : {e}")
+        print(f"❌ Erreur critique : {e}")
