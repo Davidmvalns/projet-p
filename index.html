@@ -27,6 +27,19 @@
         h1 { margin: 0; font-size: 2.5em; text-transform: uppercase; letter-spacing: 2px;}
         .sous-titre { color: var(--texte-secondaire); font-weight: bold; }
 
+        .recherche-conteneur { text-align: center; margin-bottom: 30px; }
+        .recherche-input {
+            width: 90%; max-width: 500px; padding: 12px 20px;
+            border-radius: 25px; border: 1px solid #333;
+            background-color: var(--bg-carte); color: var(--texte-principal);
+            font-size: 1em; transition: all 0.3s; outline: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .recherche-input:focus {
+            border-color: var(--accentuation);
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+        }
+
         .filtres {
             display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap;
         }
@@ -45,19 +58,6 @@
         button[data-filtre="Nintendo"]:hover, button[data-filtre="Nintendo"].actif {
             border-color: var(--accent-nintendo); color: var(--accent-nintendo);
             box-shadow: 0 0 10px rgba(230, 0, 18, 0.2);
-        }
-
-        .recherche-conteneur { text-align: center; margin-bottom: 30px; }
-        .recherche-input {
-            width: 90%; max-width: 500px; padding: 12px 20px;
-            border-radius: 25px; border: 1px solid #333;
-            background-color: var(--bg-carte); color: var(--texte-principal);
-            font-size: 1em; transition: all 0.3s; outline: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .recherche-input:focus {
-            border-color: var(--accentuation);
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
         }
 
         .grille-jeux {
@@ -154,7 +154,8 @@
                     throw new Error("Environnement de prévisualisation détecté.");
                 }
 
-                const reponse = await fetch('sorties.json');
+                // LE FAMEUX CACHE-BUSTING EST ICI : "?nocache=" force le navigateur à prendre le nouveau fichier
+                const reponse = await fetch('sorties.json?nocache=' + new Date().getTime());
                 if (!reponse.ok) throw new Error("Impossible de charger sorties.json");
                 
                 tousLesJeux = await reponse.json();
@@ -162,8 +163,7 @@
             } catch (erreur) {
                 console.warn(erreur.message + " Utilisation des données de secours.");
                 tousLesJeux = [
-                    { "titre": "007 First Light", "date": "30/09/2026", "timestamp": 1790726400, "plateforme": "Nintendo Switch 2", "jaquette": "https://images.igdb.com/igdb/image/upload/t_cover_big/co86v2.jpg" },
-                    { "titre": "Grand Theft Auto VI", "date": "24/10/2026", "timestamp": 1792756800, "plateforme": "PlayStation 5", "jaquette": "https://images.igdb.com/igdb/image/upload/t_cover_big/co7dqi.jpg" }
+                    { "titre": "Grand Theft Auto VI", "date": "24/10/2026", "timestamp": 1792756800, "plateforme": "PlayStation", "jaquette": "https://images.igdb.com/igdb/image/upload/t_cover_big/co7dqi.jpg" }
                 ];
             }
             
@@ -234,10 +234,12 @@
         function appliquerFiltresGlobaux() {
             let jeuxFiltres = tousLesJeux;
 
+            // Filtre par plateforme
             if (filtrePlateformeActuel !== 'Toutes les sorties') {
                 jeuxFiltres = jeuxFiltres.filter(jeu => jeu.plateforme.includes(filtrePlateformeActuel));
             }
 
+            // Filtre par texte (recherche)
             if (texteRechercheActuel.trim() !== '') {
                 const rechercheMinuscule = texteRechercheActuel.toLowerCase();
                 jeuxFiltres = jeuxFiltres.filter(jeu => 
