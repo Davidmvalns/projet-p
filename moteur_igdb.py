@@ -2,7 +2,6 @@ import requests
 import json
 import os
 import time
-import urllib.parse
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -19,8 +18,9 @@ def get_twitch_access_token(client_id, client_secret):
     return response.json()['access_token']
 
 def fetch_upcoming_games(client_id, access_token):
-    """Récupère les dates de sortie à venir sur IGDB pour les plateformes majeures."""
-    url = "https://api.igdb.com/v4/release_dates"
+    """NOUVELLE MÉTHODE : Interroge la base des JEUX (et non plus des dates)."""
+    # On cible directement les jeux pour éviter les doublons de dates par pays
+    url = "https://api.igdb.com/v4/games"
     headers = {
         'Client-ID': client_id,
         'Authorization': f'Bearer {access_token}'
@@ -28,13 +28,18 @@ def fetch_upcoming_games(client_id, access_token):
     
     current_timestamp = int(time.time())
     
-    # REQUÊTE OPTIMISÉE : On bloque les DLC directement à la source
-    # pour que notre limite de 500 ne contienne que des vrais jeux !
+    # REQUÊTE BLINDÉE :
+    # category = (0,8,9) -> Uniquement Jeux principaux, Remakes, Remasters
+    # cover != null -> Obligation d'avoir une jaquette
+    # On récupère les 300 prochains vrais jeux !
     query = f"""
-    fields game.name, game.cover.image_id, date, platform.name, game.category;
-    where date > {current_timestamp} & platform = (6,130,167,169) & game.category = (0,8,9);
-    sort date asc;
-    limit 500;
+    fields name, cover.image_id, first_release_date, platforms.name;
+    where first_release_date > {current_timestamp} 
+    & platforms = (6,130,167,169,48,49) 
+    & category = (0,8,9) 
+    & cover != null;
+    sort first_release_date asc;
+    limit 300;
     """
     
     response = requests.post(url, headers=headers, data=query)
@@ -42,81 +47,68 @@ def fetch_upcoming_games(client_id, access_token):
     return response.json()
 
 def format_games_data(raw_data):
-    """Nettoie les données brutes et prépare le JSON pour notre interface Web."""
+    """Formate et trie les jeux par plateforme de manière stricte."""
     formatted_games = []
     
-    for item in raw_data:
-        if 'game' not in item or 'name' not in item['game']:
+    for game in raw_data:
+        if 'first_release_date' not in game or 'name' not in game:
             continue
             
-        game_info = item['game']
-        
-        # NOUVEAU : Le filtrage se fait ici, en local, par notre script Python.
-        # On vérifie la catégorie (0=Main Game, 8=Remake, 9=Remaster). 
-        # Si c'est un DLC ou autre chose, on l'ignore (continue).
-        categorie_jeu = game_info.get('category', 0)
-        if categorie_jeu not in [0, 8, 9]:
-            continue
-        
-        # 1. Formatage de la date
+        # 1. Formatage de la date de sortie initiale
         try:
-            date_obj = datetime.fromtimestamp(item['date'])
+            date_obj = datetime.fromtimestamp(game['first_release_date'])
             formatted_date = date_obj.strftime('%d/%m/%Y')
         except KeyError:
             continue
 
-        # 2. Récupération de la jaquette officielle
+        # 2. Récupération de la vraie jaquette associée au jeu
         cover_url = ""
-        if 'cover' in game_info and 'image_id' in game_info['cover']:
-            cover_url = f"https://images.igdb.com/igdb/image/upload/t_cover_big/{game_info['cover']['image_id']}.jpg"
+        if 'cover' in game and 'image_id' in game['cover']:
+            cover_url = f"https://images.igdb.com/igdb/image/upload/t_cover_big/{game['cover']['image_id']}.jpg"
             
-        # 3. Simplification des noms de plateformes
-        platform_name = "Autre"
-        if 'platform' in item and 'name' in item['platform']:
-            p_name = item['platform']['name']
-            if "PlayStation" in p_name:
-                platform_name = "PlayStation"
-            elif "Xbox" in p_name:
-                platform_name = "Xbox"
-            elif "Nintendo" in p_name or "Switch" in p_name:
-                platform_name = "Nintendo"
-            elif "PC" in p_name:
-                platform_name = "PC"
-            else:
-                platform_name = p_name
-
-        formatted_games.append({
-            "titre": game_info['name'],
-            "date": formatted_date,
-            "timestamp": item['date'],
-            "plateforme": platform_name,
-            "jaquette": cover_url
-        })
+        # 3. Répartition propre par plateforme
+        is_playstation = False
+        is_xbox = False
+        is_nintendo = False
+        is_pc = False
         
-    # 4. Suppression des doublons
-    unique_games = []
-    seen = set()
-    for g in formatted_games:
-        identifier = f"{g['titre']}_{g['plateforme']}"
-        if identifier not in seen:
-            seen.add(identifier)
-            unique_games.append(g)
+        if 'platforms' in game:
+            for p in game['platforms']:
+                p_name = p.get('name', '')
+                if "PlayStation" in p_name: is_playstation = True
+                if "Xbox" in p_name: is_xbox = True
+                if "Nintendo" in p_name or "Switch" in p_name: is_nintendo = True
+                if "PC" in p_name: is_pc = True
+        
+        # On crée une carte pour chaque plateforme sur laquelle le jeu sort
+        platforms_to_add = []
+        if is_playstation: platforms_to_add.append("PlayStation")
+        if is_xbox: platforms_to_add.append("Xbox")
+        if is_nintendo: platforms_to_add.append("Nintendo")
+        if is_pc: platforms_to_add.append("PC")
             
-    return unique_games
+        for plat in platforms_to_add:
+            formatted_games.append({
+                "titre": game['name'],
+                "date": formatted_date,
+                "timestamp": game['first_release_date'],
+                "plateforme": plat,
+                "jaquette": cover_url
+            })
+            
+    return formatted_games
 
 if __name__ == '__main__':
-    print("Démarrage du Projet P - Extraction des données...")
+    print("Démarrage du Projet P - Moteur V3...")
     try:
         token = get_twitch_access_token(CLIENT_ID, CLIENT_SECRET)
         raw_data = fetch_upcoming_games(CLIENT_ID, token)
         
         clean_data = format_games_data(raw_data)
-        print(f"✅ SUCCÈS : {len(clean_data)} jeux uniques trouvés (sur {len(raw_data)} dates brutes) !")
+        print(f"✅ SUCCÈS : {len(clean_data)} fiches consoles créées (à partir de {len(raw_data)} vrais jeux uniques) !")
         
         with open('sorties.json', 'w', encoding='utf-8') as f:
             json.dump(clean_data, f, ensure_ascii=False, indent=4)
             
-        print("Rechargez votre page web (Ctrl+F5) pour voir les nouveautés.")
-        
     except Exception as e:
         print(f"❌ Erreur lors de l'exécution : {e}")
