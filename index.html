@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projet P - Planning JV</title>
+    
     <style>
         :root {
             --bg-fond: #121212;
@@ -27,7 +28,7 @@
         .sous-titre { color: var(--texte-secondaire); font-weight: bold; }
 
         .filtres {
-            display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap;
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap;
         }
         
         button {
@@ -41,33 +42,22 @@
             box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
         }
         
-        /* Couleur spécifique pour le bouton Nintendo quand il est actif */
         button[data-filtre="Nintendo"]:hover, button[data-filtre="Nintendo"].actif {
             border-color: var(--accent-nintendo); color: var(--accent-nintendo);
             box-shadow: 0 0 10px rgba(230, 0, 18, 0.2);
         }
 
-        .recherche-conteneur { text-align: center; margin-bottom: 25px; }
-        #barre-recherche {
-            width: 90%; max-width: 500px; padding: 12px 20px; border-radius: 25px;
+        .recherche-conteneur { text-align: center; margin-bottom: 30px; }
+        .recherche-input {
+            width: 90%; max-width: 500px; padding: 12px 20px;
+            border-radius: 25px; border: 1px solid #333;
             background-color: var(--bg-carte); color: var(--texte-principal);
-            border: 1px solid #333; font-size: 1rem; outline: none; transition: all 0.3s;
+            font-size: 1em; transition: all 0.3s; outline: none;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        #barre-recherche:focus { border-color: var(--accentuation); box-shadow: 0 0 15px rgba(0, 255, 204, 0.3); }
-        
-        .en-tete-carte { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .badge-rebours { 
-            font-size: 0.75em; font-weight: bold; padding: 4px 8px; border-radius: 12px; 
-            background-color: #333; color: #ddd; letter-spacing: 0.5px;
-        }
-        .badge-rebours.proche { background-color: var(--accent-nintendo); color: white; animation: pulse 2s infinite; }
-        .badge-rebours.sorti { background-color: var(--accentuation); color: var(--bg-fond); }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(230, 0, 18, 0.4); }
-            70% { box-shadow: 0 0 0 6px rgba(230, 0, 18, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(230, 0, 18, 0); }
+        .recherche-input:focus {
+            border-color: var(--accentuation);
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
         }
 
         .grille-jeux {
@@ -120,25 +110,14 @@
         }
         .plateforme.nintendo { color: var(--accent-nintendo); }
         
-        .loading { text-align: center; color: var(--texte-secondaire); font-style: italic; grid-column: 1 / -1; }
-
-        .recherche-conteneur { text-align: center; margin-bottom: 25px; }
-        .recherche-input {
-            width: 100%; max-width: 400px; padding: 12px 20px;
-            border-radius: 25px; border: 1px solid #333;
-            background-color: var(--bg-carte); color: var(--texte-principal);
-            font-size: 1em; transition: all 0.3s;
-        }
-        .recherche-input:focus {
-            outline: none; border-color: var(--accentuation);
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
-        }
         .compte-a-rebours {
             display: inline-block; background-color: rgba(0, 255, 204, 0.1);
             color: var(--accentuation); padding: 6px 12px;
             border-radius: 8px; font-size: 0.85em; font-weight: bold;
             margin-top: 15px; align-self: flex-start;
         }
+        
+        .loading, .message-vide { text-align: center; color: var(--texte-secondaire); font-style: italic; grid-column: 1 / -1; padding: 40px; }
     </style>
 </head>
 <body>
@@ -149,10 +128,9 @@
     </header>
 
     <div class="recherche-conteneur">
-        <input type="text" id="barre-recherche" class="recherche-input" placeholder="🔍 Rechercher un jeu (ex: GTA, Witcher...)">
+        <input type="text" id="barre-recherche" class="recherche-input" placeholder="🔍 Rechercher un jeu (ex: GTA, Witcher...)" autocomplete="off">
     </div>
 
-    <!-- Ajout des attributs data-filtre pour la logique Javascript -->
     <div class="filtres">
         <button class="actif" data-filtre="Toutes les sorties">Toutes les sorties</button>
         <button data-filtre="PlayStation">PlayStation</button>
@@ -161,22 +139,17 @@
         <button data-filtre="PC">PC</button>
     </div>
 
-    <div class="recherche-conteneur">
-        <input type="text" id="barre-recherche" placeholder="Rechercher un jeu (ex: GTA, Witcher, Mario...)" autocomplete="off">
-    </div>
-
     <main id="grille-jeux" class="grille-jeux">
         <div class="loading">Chargement des données satellites...</div>
     </main>
 
     <script>
-        let tousLesJeux = []; // On stocke les jeux ici pour pouvoir les filtrer sans retélécharger le JSON
+        let tousLesJeux = [];
         let filtrePlateformeActuel = 'Toutes les sorties';
         let texteRechercheActuel = '';
 
         async function init() {
             try {
-                // Détection de l'environnement de prévisualisation (iframe/blob) pour éviter l'erreur fetch
                 if (window.location.protocol === 'blob:' || window.location.protocol === 'data:') {
                     throw new Error("Environnement de prévisualisation détecté.");
                 }
@@ -188,12 +161,9 @@
                 
             } catch (erreur) {
                 console.warn(erreur.message + " Utilisation des données de secours.");
-                // Données de secours intégrées
                 tousLesJeux = [
-                    { "titre": "007 First Light", "date": "30/09/2026", "timestamp": 1790726400, "plateforme": "Nintendo Switch 2", "jaquette": "https://placehold.co/600x800/1e1e1e/e60012?text=007+First+Light" },
-                    { "titre": "Grand Theft Auto VI", "date": "24/10/2026", "timestamp": 1792756800, "plateforme": "PlayStation 5", "jaquette": "https://placehold.co/600x800/1e1e1e/00ffcc?text=GTA+VI" },
-                    { "titre": "The Witcher 4 : Polaris", "date": "15/11/2026", "timestamp": 1794715200, "plateforme": "PC", "jaquette": "https://placehold.co/600x800/1e1e1e/00ffcc?text=The+Witcher+4" },
-                    { "titre": "The Elder Scrolls VI", "date": "03/12/2026", "timestamp": 1796270400, "plateforme": "Xbox Series X|S", "jaquette": "https://placehold.co/600x800/1e1e1e/00ffcc?text=Elder+Scrolls+VI" }
+                    { "titre": "007 First Light", "date": "30/09/2026", "timestamp": 1790726400, "plateforme": "Nintendo Switch 2", "jaquette": "https://images.igdb.com/igdb/image/upload/t_cover_big/co86v2.jpg" },
+                    { "titre": "Grand Theft Auto VI", "date": "24/10/2026", "timestamp": 1792756800, "plateforme": "PlayStation 5", "jaquette": "https://images.igdb.com/igdb/image/upload/t_cover_big/co7dqi.jpg" }
                 ];
             }
             
@@ -206,7 +176,6 @@
             const dateSortie = new Date(timestamp * 1000);
             const aujourdhui = new Date();
             
-            // On remet les heures à zéro pour avoir une vraie différence en jours pleins
             dateSortie.setHours(0,0,0,0);
             aujourdhui.setHours(0,0,0,0);
             
@@ -225,7 +194,7 @@
             conteneur.innerHTML = ''; 
 
             if(jeuxData.length === 0) {
-                conteneur.innerHTML = '<div class="loading">Aucun jeu ne correspond à vos critères.</div>';
+                conteneur.innerHTML = '<div class="message-vide">Aucun jeu ne correspond à votre recherche.</div>';
                 return;
             }
 
@@ -233,15 +202,15 @@
                 const article = document.createElement('article');
                 article.className = 'carte-jeu';
                 
-                const classePlateforme = jeu.plateforme.includes('Nintendo') ? 'plateforme nintendo' : 'plateforme';
-                const styleDate = jeu.plateforme.includes('Nintendo') ? `color: var(--accent-nintendo)` : '';
+                const estNintendo = jeu.plateforme.includes('Nintendo');
+                const classePlateforme = estNintendo ? 'plateforme nintendo' : 'plateforme';
+                const styleDate = estNintendo ? `color: var(--accent-nintendo)` : '';
+                
                 const texteRebours = calculerRebours(jeu.timestamp);
-                const classeReboursStyle = jeu.plateforme.includes('Nintendo') ? 'background-color: rgba(230, 0, 18, 0.1); color: var(--accent-nintendo);' : '';
+                const classeReboursStyle = estNintendo ? 'background-color: rgba(230, 0, 18, 0.1); color: var(--accent-nintendo);' : '';
 
-                // Gestion blindée des images (firewall ou erreur réseau)
                 let imageHtml = '';
                 if (jeu.jaquette) {
-                    // Si l'image est bloquée, 'onerror' la cache instantanément et dévoile le texte de secours
                     imageHtml = `<img src="${jeu.jaquette}" class="jaquette-img" alt="${jeu.titre}" onerror="this.style.display='none';">`;
                 }
 
@@ -265,12 +234,10 @@
         function appliquerFiltresGlobaux() {
             let jeuxFiltres = tousLesJeux;
 
-            // 1. Filtrer par plateforme
             if (filtrePlateformeActuel !== 'Toutes les sorties') {
                 jeuxFiltres = jeuxFiltres.filter(jeu => jeu.plateforme.includes(filtrePlateformeActuel));
             }
 
-            // 2. Filtrer par recherche (texte)
             if (texteRechercheActuel.trim() !== '') {
                 const rechercheMinuscule = texteRechercheActuel.toLowerCase();
                 jeuxFiltres = jeuxFiltres.filter(jeu => 
@@ -294,12 +261,9 @@
             
             boutons.forEach(bouton => {
                 bouton.addEventListener('click', (e) => {
-                    // 1. On enlève la classe "actif" de tous les boutons
                     boutons.forEach(b => b.classList.remove('actif'));
-                    // 2. On l'ajoute sur le bouton cliqué
                     e.target.classList.add('actif');
                     
-                    // 3. On enregistre le filtre et on applique
                     filtrePlateformeActuel = e.target.getAttribute('data-filtre');
                     appliquerFiltresGlobaux();
                 });
