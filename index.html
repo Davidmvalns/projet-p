@@ -52,12 +52,10 @@
 
         button:hover, button.actif {
             border-color: var(--accentuation); color: var(--accentuation);
-            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
         }
         
         button[data-filtre="Nintendo"]:hover, button[data-filtre="Nintendo"].actif {
             border-color: var(--accent-nintendo); color: var(--accent-nintendo);
-            box-shadow: 0 0 10px rgba(230, 0, 18, 0.2);
         }
 
         .grille-jeux {
@@ -73,12 +71,6 @@
             background: var(--bg-carte); border-radius: 12px; overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.2s;
             display: flex; flex-direction: column;
-            animation: apparition 0.4s ease-out;
-        }
-        
-        @keyframes apparition {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
         }
 
         .carte-jeu:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 255, 204, 0.15); }
@@ -86,8 +78,7 @@
         .jaquette-conteneur {
             width: 100%; height: 350px; background-color: #2a2a2a;
             position: relative; overflow: hidden;
-            display: flex; align-items: center; justify-content: center;
-            text-align: center;
+            display: flex; align-items: center; justify-content: center; text-align: center;
         }
 
         .jaquette-img {
@@ -154,14 +145,16 @@
                     throw new Error("Environnement de prévisualisation détecté.");
                 }
 
-                // LE FAMEUX CACHE-BUSTING EST ICI : "?nocache=" force le navigateur à prendre le nouveau fichier
-                const reponse = await fetch('sorties.json?nocache=' + new Date().getTime());
-                if (!reponse.ok) throw new Error("Impossible de charger sorties.json");
+                // NOUVEAUTÉ CRITIQUE : On lit le fichier à la source chez GitHub pour éviter le bug de Pages
+                const urlDirecte = 'https://raw.githubusercontent.com/Davidmvalns/projet-p/main/sorties.json?nocache=' + new Date().getTime();
+                const reponse = await fetch(urlDirecte);
+                
+                if (!reponse.ok) throw new Error("Impossible de charger la base distante");
                 
                 tousLesJeux = await reponse.json();
                 
             } catch (erreur) {
-                console.warn(erreur.message + " Utilisation des données de secours.");
+                console.warn(erreur.message + " Utilisation de la sauvegarde de secours.");
                 tousLesJeux = [
                     { "titre": "Grand Theft Auto VI", "date": "24/10/2026", "timestamp": 1792756800, "plateforme": "PlayStation", "jaquette": "https://images.igdb.com/igdb/image/upload/t_cover_big/co7dqi.jpg" }
                 ];
@@ -234,12 +227,10 @@
         function appliquerFiltresGlobaux() {
             let jeuxFiltres = tousLesJeux;
 
-            // Filtre par plateforme
             if (filtrePlateformeActuel !== 'Toutes les sorties') {
                 jeuxFiltres = jeuxFiltres.filter(jeu => jeu.plateforme.includes(filtrePlateformeActuel));
             }
 
-            // Filtre par texte (recherche)
             if (texteRechercheActuel.trim() !== '') {
                 const rechercheMinuscule = texteRechercheActuel.toLowerCase();
                 jeuxFiltres = jeuxFiltres.filter(jeu => 
