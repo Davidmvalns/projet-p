@@ -15,103 +15,48 @@
             --accent-nintendo: #e60012;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-fond);
-            color: var(--texte-principal);
-            margin: 0;
-            padding: 20px;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-fond); color: var(--texte-principal); margin: 0; padding: 0 0 20px 0; }
+        
+        /* BANDEAU DE DIAGNOSTIC */
+        #debug-bar { background-color: #333; color: #ffeb3b; padding: 8px; text-align: center; font-family: monospace; font-size: 0.85em; margin-bottom: 20px; border-bottom: 2px solid #ffeb3b; }
 
         header { text-align: center; margin-bottom: 30px; }
         h1 { margin: 0; font-size: 2.5em; text-transform: uppercase; letter-spacing: 2px;}
         .sous-titre { color: var(--texte-secondaire); font-weight: bold; }
 
-        .recherche-conteneur { text-align: center; margin-bottom: 30px; }
-        .recherche-input {
-            width: 90%; max-width: 500px; padding: 12px 20px;
-            border-radius: 25px; border: 1px solid #333;
-            background-color: var(--bg-carte); color: var(--texte-principal);
-            font-size: 1em; transition: all 0.3s; outline: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .recherche-input:focus {
-            border-color: var(--accentuation);
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
-        }
+        .recherche-conteneur { text-align: center; margin-bottom: 30px; padding: 0 20px; }
+        .recherche-input { width: 100%; max-width: 500px; padding: 12px 20px; border-radius: 25px; border: 1px solid #333; background-color: var(--bg-carte); color: var(--texte-principal); font-size: 1em; box-shadow: 0 4px 6px rgba(0,0,0,0.3); outline: none; }
+        .recherche-input:focus { border-color: var(--accentuation); box-shadow: 0 0 15px rgba(0, 255, 204, 0.3); }
 
-        .filtres {
-            display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap;
-        }
-        
-        button {
-            background-color: var(--bg-carte); color: var(--texte-principal);
-            border: 1px solid #333; padding: 10px 20px; border-radius: 20px;
-            cursor: pointer; transition: all 0.2s; font-weight: bold;
-        }
+        .filtres { display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap; padding: 0 10px; }
+        button { background-color: var(--bg-carte); color: var(--texte-principal); border: 1px solid #333; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        button:hover, button.actif { border-color: var(--accentuation); color: var(--accentuation); }
+        button[data-filtre="Nintendo"]:hover, button[data-filtre="Nintendo"].actif { border-color: var(--accent-nintendo); color: var(--accent-nintendo); }
 
-        button:hover, button.actif {
-            border-color: var(--accentuation); color: var(--accentuation);
-        }
-        
-        button[data-filtre="Nintendo"]:hover, button[data-filtre="Nintendo"].actif {
-            border-color: var(--accent-nintendo); color: var(--accent-nintendo);
-        }
-
-        .grille-jeux {
-            display: grid; gap: 20px; max-width: 1200px; margin: 0 auto;
-            grid-template-columns: 1fr;
-        }
-
+        .grille-jeux { display: grid; gap: 20px; max-width: 1200px; margin: 0 auto; padding: 0 20px; grid-template-columns: 1fr; }
         @media (min-width: 600px) { .grille-jeux { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 900px) { .grille-jeux { grid-template-columns: repeat(3, 1fr); } }
         @media (min-width: 1200px) { .grille-jeux { grid-template-columns: repeat(4, 1fr); } }
 
-        .carte-jeu {
-            background: var(--bg-carte); border-radius: 12px; overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.2s;
-            display: flex; flex-direction: column;
-        }
-
-        .carte-jeu:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 255, 204, 0.15); }
-
-        .jaquette-conteneur {
-            width: 100%; height: 350px; background-color: #2a2a2a;
-            position: relative; overflow: hidden;
-            display: flex; align-items: center; justify-content: center; text-align: center;
-        }
-
-        .jaquette-img {
-            width: 100%; height: 100%; object-fit: cover;
-            position: absolute; top: 0; left: 0; z-index: 2;
-            background-color: #2a2a2a;
-        }
-
-        .jaquette-fallback {
-            font-size: 1.3em; font-weight: bold; color: #666;
-            padding: 20px; z-index: 1; text-transform: uppercase;
-        }
+        .carte-jeu { background: var(--bg-carte); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+        .jaquette-conteneur { width: 100%; height: 350px; background-color: #2a2a2a; display: flex; align-items: center; justify-content: center; text-align: center; position: relative; }
+        .jaquette-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 2; background-color: #2a2a2a; }
+        .jaquette-fallback { font-size: 1.3em; font-weight: bold; color: #666; padding: 20px; z-index: 1; text-transform: uppercase; }
 
         .infos { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
         .date { color: var(--accentuation); font-weight: bold; font-size: 0.9em; margin-bottom: 8px; }
         .titre { margin: 0 0 10px 0; font-size: 1.2em; line-height: 1.3; }
-        .plateforme { 
-            font-size: 0.85em; color: var(--texte-secondaire); 
-            margin-top: auto; padding-top: 10px; border-top: 1px solid #333;
-        }
+        .plateforme { font-size: 0.85em; color: var(--texte-secondaire); margin-top: auto; padding-top: 10px; border-top: 1px solid #333; }
         .plateforme.nintendo { color: var(--accent-nintendo); }
+        .compte-a-rebours { display: inline-block; background-color: rgba(0, 255, 204, 0.1); color: var(--accentuation); padding: 6px 12px; border-radius: 8px; font-size: 0.85em; font-weight: bold; margin-top: 15px; align-self: flex-start; }
         
-        .compte-a-rebours {
-            display: inline-block; background-color: rgba(0, 255, 204, 0.1);
-            color: var(--accentuation); padding: 6px 12px;
-            border-radius: 8px; font-size: 0.85em; font-weight: bold;
-            margin-top: 15px; align-self: flex-start;
-        }
-        
-        .loading, .message-vide { text-align: center; color: var(--texte-secondaire); font-style: italic; grid-column: 1 / -1; padding: 40px; }
+        .message-vide { text-align: center; color: var(--texte-secondaire); font-style: italic; grid-column: 1 / -1; padding: 40px; }
     </style>
 </head>
 <body>
+
+    <!-- Ce bandeau nous dira EXACTEMENT ce qui bloque -->
+    <div id="debug-bar">🔍 Initialisation du système...</div>
 
     <header>
         <h1>Projet P</h1>
@@ -130,56 +75,57 @@
         <button data-filtre="PC">PC</button>
     </div>
 
-    <main id="grille-jeux" class="grille-jeux">
-        <div class="loading">Chargement des données satellites...</div>
-    </main>
+    <main id="grille-jeux" class="grille-jeux"></main>
 
     <script>
         let tousLesJeux = [];
         let filtrePlateformeActuel = 'Toutes les sorties';
         let texteRechercheActuel = '';
 
+        function updateDebug(msg, type = "info") {
+            const bar = document.getElementById('debug-bar');
+            bar.innerText = "🔍 " + msg;
+            if (type === "success") { bar.style.color = "#00ffcc"; bar.style.borderBottomColor = "#00ffcc"; }
+            if (type === "error") { bar.style.color = "#ff4444"; bar.style.borderBottomColor = "#ff4444"; }
+        }
+
         async function init() {
             try {
-                if (window.location.protocol === 'blob:' || window.location.protocol === 'data:') {
-                    throw new Error("Environnement de prévisualisation détecté.");
-                }
-
-                // NOUVEAUTÉ CRITIQUE : On lit le fichier à la source chez GitHub pour éviter le bug de Pages
-                const urlDirecte = 'https://raw.githubusercontent.com/Davidmvalns/projet-p/main/sorties.json?nocache=' + new Date().getTime();
-                const reponse = await fetch(urlDirecte);
+                updateDebug("Téléchargement des données IGDB...");
                 
-                if (!reponse.ok) throw new Error("Impossible de charger la base distante");
+                // L'astuce anti-fantôme : force le téléchargement
+                const url = 'sorties.json?nocache=' + new Date().getTime();
+                const reponse = await fetch(url);
+                
+                if (!reponse.ok) throw new Error("Erreur serveur " + reponse.status);
                 
                 tousLesJeux = await reponse.json();
                 
+                if (tousLesJeux.length > 0 && tousLesJeux[0].titre.includes("ERREUR")) {
+                    updateDebug("LE ROBOT PYTHON A PLANTÉ ! Lisez le message ci-dessous.", "error");
+                } else {
+                    updateDebug("SUCCÈS : " + tousLesJeux.length + " jeux chargés !", "success");
+                }
+                
+                afficherJeux(tousLesJeux);
+                configurerFiltres();
+                configurerRecherche();
+                
             } catch (erreur) {
-                console.warn(erreur.message + " Utilisation de la sauvegarde de secours.");
-                tousLesJeux = [
-                    { "titre": "Grand Theft Auto VI", "date": "24/10/2026", "timestamp": 1792756800, "plateforme": "PlayStation", "jaquette": "https://images.igdb.com/igdb/image/upload/t_cover_big/co7dqi.jpg" }
-                ];
+                updateDebug("ERREUR NAVIGATEUR : " + erreur.message, "error");
             }
-            
-            afficherJeux(tousLesJeux);
-            configurerFiltres();
-            configurerRecherche();
         }
 
         function calculerRebours(timestamp) {
             const dateSortie = new Date(timestamp * 1000);
             const aujourdhui = new Date();
+            dateSortie.setHours(0,0,0,0); aujourdhui.setHours(0,0,0,0);
+            const diff = Math.ceil((dateSortie.getTime() - aujourdhui.getTime()) / (1000 * 3600 * 24));
             
-            dateSortie.setHours(0,0,0,0);
-            aujourdhui.setHours(0,0,0,0);
-            
-            const differenceTemps = dateSortie.getTime() - aujourdhui.getTime();
-            const differenceJours = Math.ceil(differenceTemps / (1000 * 3600 * 24));
-            
-            if (differenceJours === 0) return "⏳ Sort aujourd'hui !";
-            if (differenceJours === 1) return "⏳ Sort demain !";
-            if (differenceJours > 1) return `⏳ Sort dans ${differenceJours} jours`;
-            if (differenceJours < 0) return `✅ Sorti il y a ${Math.abs(differenceJours)} jours`;
-            return "";
+            if (diff === 0) return "⏳ Sort aujourd'hui !";
+            if (diff === 1) return "⏳ Sort demain !";
+            if (diff > 1) return `⏳ Sort dans ${diff} jours`;
+            return `✅ Sorti il y a ${Math.abs(diff)} jours`;
         }
 
         function afficherJeux(jeuxData) {
@@ -198,14 +144,15 @@
                 const estNintendo = jeu.plateforme.includes('Nintendo');
                 const classePlateforme = estNintendo ? 'plateforme nintendo' : 'plateforme';
                 const styleDate = estNintendo ? `color: var(--accent-nintendo)` : '';
-                
-                const texteRebours = calculerRebours(jeu.timestamp);
                 const classeReboursStyle = estNintendo ? 'background-color: rgba(230, 0, 18, 0.1); color: var(--accent-nintendo);' : '';
+                const texteRebours = calculerRebours(jeu.timestamp);
 
                 let imageHtml = '';
                 if (jeu.jaquette) {
                     imageHtml = `<img src="${jeu.jaquette}" class="jaquette-img" alt="${jeu.titre}" onerror="this.style.display='none';">`;
                 }
+                
+                let messageErreur = jeu.message ? `<div style="color:red; margin-top:10px;">${jeu.message}</div>` : '';
 
                 article.innerHTML = `
                     <div class="jaquette-conteneur">
@@ -216,34 +163,28 @@
                         <div class="date" style="${styleDate}">${jeu.date}</div>
                         <h2 class="titre">${jeu.titre}</h2>
                         <div class="plateforme ${classePlateforme}">${jeu.plateforme}</div>
+                        ${messageErreur}
                         <div class="compte-a-rebours" style="${classeReboursStyle}">${texteRebours}</div>
                     </div>
                 `;
-                
                 conteneur.appendChild(article);
             });
         }
 
         function appliquerFiltresGlobaux() {
             let jeuxFiltres = tousLesJeux;
-
             if (filtrePlateformeActuel !== 'Toutes les sorties') {
                 jeuxFiltres = jeuxFiltres.filter(jeu => jeu.plateforme.includes(filtrePlateformeActuel));
             }
-
             if (texteRechercheActuel.trim() !== '') {
                 const rechercheMinuscule = texteRechercheActuel.toLowerCase();
-                jeuxFiltres = jeuxFiltres.filter(jeu => 
-                    jeu.titre.toLowerCase().includes(rechercheMinuscule)
-                );
+                jeuxFiltres = jeuxFiltres.filter(jeu => jeu.titre.toLowerCase().includes(rechercheMinuscule));
             }
-
             afficherJeux(jeuxFiltres);
         }
 
         function configurerRecherche() {
-            const inputRecherche = document.getElementById('barre-recherche');
-            inputRecherche.addEventListener('input', (e) => {
+            document.getElementById('barre-recherche').addEventListener('input', (e) => {
                 texteRechercheActuel = e.target.value;
                 appliquerFiltresGlobaux();
             });
@@ -251,12 +192,10 @@
 
         function configurerFiltres() {
             const boutons = document.querySelectorAll('.filtres button');
-            
             boutons.forEach(bouton => {
                 bouton.addEventListener('click', (e) => {
                     boutons.forEach(b => b.classList.remove('actif'));
                     e.target.classList.add('actif');
-                    
                     filtrePlateformeActuel = e.target.getAttribute('data-filtre');
                     appliquerFiltresGlobaux();
                 });
